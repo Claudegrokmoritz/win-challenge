@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WIN CHALLENGE</title>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:-apple-system,system-ui,sans-serif;background:#f7f7f5;color:#1a1d29;padding-bottom:84px}
+header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e7e7e2;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;z-index:5}
+header b{letter-spacing:1.2px;font-size:14px}
+#st,#ls{font-size:12px;color:#6b7280}
+.sv{border:0;background:#eef2ef;color:#2f5d50;font-weight:700;border-radius:20px;padding:10px 14px;white-space:nowrap}
+main{max-width:520px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid #ecece6;border-radius:14px;padding:14px;margin-bottom:12px}
+.hero{background:linear-gradient(135deg,#1f3a31,#2f5d50);color:#fff;text-align:center;padding:24px}
+.bar{height:10px;background:#eeefea;border-radius:6px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:#2f5d50}
+.bar i.w{background:#d4a24e}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:#6b7280}
+.k{color:#1a1d29;align-items:center}
+h3{font-size:14px;margin-bottom:4px}
+label{display:block;font-size:12px;font-weight:700;margin:12px 0 6px}
+input,select{width:100%;padding:12px;border:1px solid #e2e2db;border-radius:10px;font-size:16px;background:#fafaf7}
+button{font:inherit}
+.btn{width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:#2f5d50;color:#fff;font-weight:700;font-size:15px}
+.btn.r{background:#c1443c}
+.btn.g{background:#f1f1ec;color:#1a1d29}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.chip{padding:12px 4px;border:1px solid #e2e2db;border-radius:10px;background:#fafaf7;font-weight:600;font-size:14px}
+.chip.on{background:#eef2ef;border-color:#2f5d50;color:#2f5d50}
+.win{background:#fcf3e1;color:#8a6512;font-size:11px;font-weight:800;padding:3px 8px;border-radius:20px}
+.x{border:0;background:#fbeae8;color:#8a2e27;border-radius:8px;padding:8px 10px}
+.clk{font:700 38px ui-monospace,monospace;text-align:center;margin:10px 0}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ecece6;display:flex;padding:6px 4px calc(6px + env(safe-area-inset-bottom))}
+nav button{flex:1;border:0;background:none;color:#9ca3af;font-size:11px;font-weight:600;padding:6px}
+nav button span{display:block;font-size:20px}
+nav button.on{color:#2f5d50}
+.clk.warn{color:#b58a2e}.clk.crit{color:#c1443c}.clk.pulse{animation:pu 1s infinite}
+@keyframes pu{50%{opacity:.5}}
+.crit{color:#c1443c}
+.pop{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(26,29,41,.4);z-index:50}
+.popc{background:#fff;border:2px solid #d4a24e;border-radius:18px;padding:24px 32px;text-align:center;animation:pp .4s ease}
+@keyframes pp{from{transform:scale(.8);opacity:0}}
+.cf{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.cf i{position:absolute;top:-10px;width:8px;height:12px;animation:fl 2s ease-in forwards}
+@keyframes fl{to{transform:translateY(105vh) rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}.cf{display:none}}
+</style>
+</head>
+<body>
+<header><div><b>WIN CHALLENGE</b><div id="st">…</div><div id="ls">Zuletzt gespeichert: —</div></div><button class="sv" onclick="manualSave()">💾 Speichern</button></header>
+<main id="main"></main>
+<nav>
+<button data-t="dash" onclick="go('dash')"><span>🏠</span>Dashboard</button>
+<button data-t="add" onclick="go('add')"><span>➕</span>Eintragen</button>
+<button data-t="team" onclick="go('team')"><span>👥</span>Team</button>
+<button data-t="hist" onclick="go('hist')"><span>📋</span>Historie</button>
+<button data-t="chal" onclick="go('chal')"><span>⚙️</span>Mehr</button>
+</nav>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+// ====== HIER DEINE FIREBASE-DATEN EINTRAGEN ======
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCcVSgz0iUzMuBYgmbuHzWnHs0g1F-_w9Y",
+  authDomain: "win-challenge-b822b.firebaseapp.com",
+  databaseURL: "https://win-challenge-b822b-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "win-challenge-b822b",
+  appId: "1:238515716443:web:db6d84d725ac098d20da7e"
+};
+// =================================================
+
+const PERSONS = ["Max","Moritz","Jackson","Tita","Tlow","Wang","Ü","Gruppe"];
+const DEF = Object.fromEntries([
+  ["laufen","70 km Laufen",70,"km"],["fahrrad","200 km Fahrrad",200,"km"],["eier","50 Eier",50,"Stück"],
+  ["trichter","30 Trichter",30,"Trichter"],["alkohol","2 Flaschen Alkohol",2,"Flaschen"],
+  ["timeguesser","500.000 Punkte TimeGuesser",500000,"Punkte"],["freiwuerfe","700 Freiwürfe",700,"Treffer"],
+  ["latte","50 Lattentreffer",50,"Treffer"],["planken","70 Min Planken",70,"Minuten"],
+  ["liegestuetze","4.000 Liegestütze",4000,"Stück"],["dart","10.000 Punkte Dart",10000,"Punkte"],
+  ["fortnite","2 Fortnite Wins",2,"Wins"],["witze","70 Witze",70,"Witze"],
+  ["bademantel","5 km Bademantel in Lohne",5,"km"]
+].map(([k,name,target,unit])=>[k,{name,target,unit}]));
+
+const S = {ach:{},pend:{},user:null,ch:{},en:{},tm:null,tab:"dash",c:null,p:"Max",ok:false,conn:false};
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const fmt = n => (+n||0).toLocaleString("de-DE",{maximumFractionDigits:2});
+let db,auth;
+
+function stats(id){
+  const c=S.ch[id]; let t=0; const by={};
+  Object.values(S.en).forEach(e=>{ if(e.challengeId===id){ t+=e.amount; by[e.person]=(by[e.person]||0)+e.amount; } });
+  return {t,by,pct:Math.min(100,t/c.target*100),win:t>=c.target};
+}
+const barHtml = (s,c)=>`<div class="bar"><i class="${s.win?'w':''}" style="width:${s.pct}%"></i></div><div class="row"><span>${fmt(Math.min(s.t,c.target))} / ${fmt(c.target)} ${esc(c.unit)}</span><span>${fmt(s.pct)} %</span></div><div class="row" style="margin-top:2px"><span>${s.win?"Ziel erreicht 🎉":"Noch "+fmt(c.target-s.t)+" "+esc(c.unit)}</span></div>`;
+
+function go(t){ S.tab=t; render(); }
+function render(){
+  if(!S.ok){ $("#main").innerHTML='<p style="text-align:center;margin-top:40px;color:#6b7280">Lade…</p>'; return; }
+  ({dash,add,hist,chal,team})[S.tab]();
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===S.tab));
+}
+function upd(){ if(!S.ok) return; S.tab==="add" ? prev() : render(); checkAch(); }
+
+function dash(){
+  const ids=Object.keys(S.ch); let sum=0,wins=0;
+  const cards=ids.map(id=>{ const c=S.ch[id],s=stats(id); sum+=s.pct; if(s.win)wins++;
+    return `<div class="card"><div class="row k"><h3>${esc(c.name)}</h3>${s.win?'<span class="win">✓ WIN</span>':''}</div>${barHtml(s,c)}</div>`; }).join("");
+  const tm = S.tm&&S.tm.endsAt
+    ? `<div class="card"><h3>⏱ <span id="lbl"></span></h3><div class="clk" id="clk"></div><button class="btn g" onclick="resetTimer()">Timer zurücksetzen</button></div>`
+    : `<div class="card"><h3>⏱ Timer</h3><label>Dauer (Stunden)</label><input id="hrs" value="24" inputmode="decimal"><button class="btn" onclick="startTimer()">▶ Starten</button></div>`;
+  $("#main").innerHTML=`<div class="card hero"><div style="font-size:46px;font-weight:700">${fmt(ids.length?sum/ids.length:0)}%</div><div>GESAMT · ${wins} / ${ids.length} geschafft</div></div>${tm}${feed()}${cards}`;
+  tick();
+}
+function tick(){
+  const e=$("#clk"); if(!e||!S.tm) return;
+  const r=Math.max(0,S.tm.endsAt-Date.now()), p=n=>String(n).padStart(2,"0");
+  e.className="clk"+(r&&r<=6e4?" crit pulse":r&&r<=6e5?" crit":r&&r<=36e5?" warn":"");
+  e.textContent=`${p(r/36e5|0)}:${p(r%36e5/6e4|0)}:${p(r%6e4/1e3|0)}`;
+  $("#lbl").textContent=r?"Zeit verbleibend":"Beendet – neue Einträge = Nachtrag";
+}
+setInterval(tick,1000);
+function startTimer(){
+  const h=parseFloat($("#hrs").value.replace(",","."))||24;
+  const now=Date.now(); db.ref("wc/timer").set({startedAt:now,endsAt:now+h*36e5}); touch();
+}
+function resetTimer(){ if(confirm("Timer zurücksetzen?")){ db.ref("wc/timer").remove(); touch(); } }
+
+function add(){
+  const ids=Object.keys(S.ch);
+  if(!ids.length){ $("#main").innerHTML='<p style="text-align:center;margin-top:30px">Noch keine Challenges.</p>'; return; }
+  if(!S.c||!S.ch[S.c]) S.c=ids[0];
+  $("#main").innerHTML=`<div class="card"><label style="margin-top:0">Challenge</label>
+  <select onchange="S.c=this.value;prev()">${ids.map(id=>`<option value="${id}" ${id===S.c?"selected":""}>${esc(S.ch[id].name)}</option>`).join("")}</select>
+  <label>Wer?</label><div class="chips">${PERSONS.map(p=>`<button class="chip ${p===S.p?"on":""}" onclick="pick(this)">${p}</button>`).join("")}</div>
+  <label>Menge</label><input id="amt" inputmode="decimal" placeholder="z.B. 7,5">
+  <label>Notiz</label><input id="note" placeholder="optional">
+  <button class="btn" onclick="save()">✓ Speichern</button><div id="fb" style="margin-top:10px;font-size:13px"></div></div><div id="prev"></div>`;
+  prev();
+}
+function pick(b){ S.p=b.textContent; document.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x===b)); }
+function prev(){
+  const e=$("#prev"); if(!e||!S.c||!S.ch[S.c]) return;
+  const c=S.ch[S.c], s=stats(S.c);
+  e.innerHTML=`<div class="card"><h3>${esc(c.name)}</h3>${barHtml(s,c)}${PERSONS.map(p=>`<div class="row k" style="margin-top:6px"><span>${p}</span><b>${fmt(s.by[p])} ${esc(c.unit)}</b></div>`).join("")}</div>`;
+}
+function save(){
+  const a=parseFloat($("#amt").value.replace(",","."));
+  const ch=S.ch[S.c];
+  if(!ch||!S.p){ $("#fb").textContent="Challenge und Person wählen"; return; }
+  if(!(a>0)||!isFinite(a)){ $("#fb").textContent="Bitte gültige Menge > 0 eingeben"; return; }
+  if(a>ch.target*0.5 && !confirm(fmt(a)+" "+ch.unit+" ist ungewöhnlich viel (über 50 % des Ziels). Wirklich speichern?")) return;
+  $("#fb").textContent="Wird gesendet …";
+  const late=!!(S.tm&&S.tm.endsAt&&Date.now()>S.tm.endsAt);
+  db.ref("wc/entries").push({challengeId:S.c,person:S.p,amount:a,note:$("#note").value.trim(),ts:Date.now(),late})
+    .then(()=>{ $("#fb").textContent="✓ Gespeichert · "+new Date().toLocaleTimeString("de-DE"); $("#amt").value=""; $("#note").value=""; })
+    .catch(()=>{ $("#fb").textContent="Fehler beim Speichern"; });
+  touch();
+}
+
+function hist(){
+  const l=Object.entries(S.en).sort((a,b)=>b[1].ts-a[1].ts);
+  $("#main").innerHTML=l.length?l.map(([k,e])=>{ const c=S.ch[e.challengeId]; if(!c) return "";
+    return `<div class="card row k"><div><div style="font-size:12px;color:#9ca3af">${new Date(e.ts).toLocaleString("de-DE")}${e.late?" · Nachtrag":""}</div><b>${esc(e.person)}</b> · ${esc(c.name)}<div style="color:#2f5d50;font-weight:700">+${fmt(e.amount)} ${esc(c.unit)}</div>${e.note?`<div style="font-size:12px;color:#6b7280">„${esc(e.note)}“</div>`:""}</div><div style="display:flex;flex-direction:column;gap:6px"><button class="x" style="background:#f1f1ec;color:#1a1d29" onclick="edE('${k}')">✎</button><button class="x" onclick="delE('${k}')">🗑</button></div></div>`; }).join("")
+    : '<p style="text-align:center;color:#9ca3af;margin-top:30px">Noch keine Einträge.</p>';
+}
+function delE(k){ if(confirm("Eintrag löschen?")){ db.ref("wc/entries/"+k).remove(); touch(); } }
+
+function chal(){
+  const adm=!!S.user, ids=Object.keys(S.ch);
+  const login=adm?`<div class="card"><h3>Admin</h3><div class="row"><span>${esc(S.user.email)}</span></div><button class="btn g" onclick="auth.signOut()">Abmelden</button></div>`
+    :`<div class="card"><h3>Admin-Login</h3><label style="margin-top:8px">E-Mail</label><input id="em" type="email" autocomplete="username"><label>Passwort</label><input id="pw" type="password" autocomplete="current-password"><button class="btn g" onclick="login()">Anmelden</button><div id="le" class="crit" style="font-size:13px;margin-top:8px"></div></div>`;
+  const data=`<div class="card"><h3>Daten</h3><button class="btn g" style="margin-top:8px" onclick="expJson()">⬇ Export (JSON, zum Wiederherstellen)</button><button class="btn g" style="margin-top:8px" onclick="expCsv()">⬇ Export (CSV, für Excel)</button>`+(adm?`<label style="margin-top:14px">Import (JSON-Datei, ersetzt alles)</label><input type="file" accept=".json,application/json" onchange="impJson(this)">`:`<div class="row" style="margin-top:12px">Import nur für Admin</div>`)+`</div>`;
+  const addCard=adm?`<div class="card"><h3>Neue Challenge</h3><label>Name</label><input id="n"><label>Ziel</label><input id="t" inputmode="decimal"><label>Einheit</label><input id="u" placeholder="km, Stück …"><button class="btn" onclick="addC()">+ Hinzufügen</button></div>`:"";
+  const list=ids.map(id=>`<div class="card row k"><div><b>${esc(S.ch[id].name)}</b><div>Ziel: ${fmt(S.ch[id].target)} ${esc(S.ch[id].unit)}</div></div>${adm?`<button class="x" onclick="delC('${id}')">🗑</button>`:""}</div>`).join("");
+  $("#main").innerHTML=login+data+addCard+list+(adm?`<button class="btn r" onclick="clearE()">Alle Einträge löschen</button>`:"");
+}
+function login(){ auth.signInWithEmailAndPassword($("#em").value.trim(),$("#pw").value).catch(()=>{ $("#le").textContent="Anmeldung fehlgeschlagen"; }); }
+function addC(){
+  const name=$("#n").value.trim(), target=parseFloat($("#t").value.replace(",",".")), unit=$("#u").value.trim()||"Stück";
+  if(!name||!(target>0)){ alert("Name und Ziel > 0 eingeben"); return; }
+  db.ref("wc/challenges").push({name,target,unit}); touch();
+}
+function delC(id){
+  if(!confirm("Challenge und alle Einträge dazu löschen?")) return;
+  const u={}; u["challenges/"+id]=null;
+  Object.entries(S.en).forEach(([k,e])=>{ if(e.challengeId===id) u["entries/"+k]=null; });
+  db.ref("wc").update(u); touch();
+}
+function clearE(){ if(confirm("ALLE Einträge löschen?")){ db.ref("wc/entries").remove(); touch(); } }
+
+// ====== SPEICHERN / EXPORT / IMPORT ======
+function touch(){ return db.ref("wc/meta/lastSave").set(firebase.database.ServerValue.TIMESTAMP); }
+function showLs(v){ $("#ls").textContent="Zuletzt gespeichert: "+(v?new Date(v).toLocaleString("de-DE"):"—"); }
+function manualSave(){
+  const b=$(".sv");
+  if(!S.conn){ alert("Gerade offline – Änderungen werden gesendet, sobald wieder Netz da ist."); return; }
+  b.textContent="…";
+  touch().then(()=>{ b.textContent="✓ Gespeichert"; }).catch(()=>{ b.textContent="Fehler"; });
+  setTimeout(()=>{ b.textContent="💾 Speichern"; },2000);
+}
+function dl(name,text,type){ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+const stamp=()=>new Date().toISOString().slice(0,16).replace(/[:T]/g,"-");
+function expJson(){ dl("win-challenge-"+stamp()+".json",JSON.stringify({version:1,exportedAt:Date.now(),challenges:S.ch,entries:S.en,timer:S.tm},null,1),"application/json"); }
+function expCsv(){
+  const q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';
+  const rows=[["Challenge","Person","Menge","Einheit","Zeit","Nachtrag","Notiz"].map(q).join(";")];
+  Object.values(S.en).sort((a,b)=>a.ts-b.ts).forEach(e=>{ const c=S.ch[e.challengeId]||{};
+    rows.push([c.name,e.person,String(e.amount).replace(".",","),c.unit,new Date(e.ts).toLocaleString("de-DE"),e.late?"Ja":"Nein",e.note].map(q).join(";")); });
+  dl("win-challenge-"+stamp()+".csv","\uFEFF"+rows.join("\r\n"),"text/csv;charset=utf-8");
+}
+function impJson(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let d; try{ d=JSON.parse(r.result); }catch(e){ alert("Datei ist kein gültiges JSON"); return; }
+    if(!validImp(d)){ alert("Datei ungültig oder keine Win-Challenge-Sicherung"); return; }
+    if(!confirm("Import ersetzt ALLE aktuellen Daten für alle Geräte. Weiter?")){ inp.value=""; return; }
+    expJson();
+    db.ref("wc").update({challenges:d.challenges,entries:d.entries||null,timer:d.timer||null})
+      .then(()=>{ touch(); alert("Import fertig"); }).catch(()=>alert("Import fehlgeschlagen"));
+    inp.value="";
+  };
+  r.readAsText(f);
+}
+
+// ====== ERWEITERUNGEN ======
+function validImp(d){ return d&&d.challenges&&typeof d.challenges==="object"&&Object.values(d.challenges).every(c=>c&&c.name&&c.target>0&&c.unit)&&(!d.entries||Object.values(d.entries).every(e=>e&&e.challengeId in d.challenges&&PERSONS.includes(e.person)&&e.amount>0)); }
+function edE(k){
+  const e=S.en[k]; if(!e) return;
+  const v=prompt("Neue Menge:",String(e.amount).replace(".",",")); if(v===null) return;
+  const a=parseFloat(v.replace(",","."));
+  if(!(a>0)||!isFinite(a)){ alert("Ungültige Menge"); return; }
+  const n=prompt("Notiz:",e.note||""); if(n===null) return;
+  db.ref("wc/entries/"+k).update({amount:a,note:n.trim(),edited:Date.now()}).then(touch).catch(()=>alert("Änderung fehlgeschlagen"));
+}
+function feed(){
+  const l=Object.values(S.en).sort((a,b)=>b.ts-a.ts).slice(0,5).map(e=>{ const c=S.ch[e.challengeId]; return c?`<div class="row k" style="margin-top:6px"><span><b>${esc(e.person)}</b> +${fmt(e.amount)} ${esc(c.unit)} · ${esc(c.name)}</span><span>${new Date(e.ts).toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})}</span></div>`:""; }).join("");
+  const w=Object.keys(S.ach).filter(k=>k.startsWith("win_")&&S.ch[k.slice(4)]).map(k=>`<div class="row k" style="margin-top:6px"><span>🏆 Team hat „${esc(S.ch[k.slice(4)].name)}“ geschafft</span></div>`).join("");
+  return `<div class="card"><h3>Live-Aktivität</h3>${w}${l||'<div class="row">Noch keine Einträge.</div>'}</div>`;
+}
+const avg=()=>{ const i=Object.keys(S.ch); return i.length?i.reduce((s,id)=>s+stats(id).pct,0)/i.length:0; };
+const ACH=[
+  {id:"first",i:"🌱",t:"Erster Eintrag",d:"Der erste Beitrag ist drin",f:()=>Object.keys(S.en).length>=1},
+  {id:"win1",i:"🏆",t:"Erste Challenge geschafft",d:"Ein gemeinsames Ziel ist erreicht",f:()=>Object.keys(S.ch).some(id=>stats(id).win)},
+  ...[25,50,75].map(n=>({id:"p"+n,i:"🌿",t:n+" % Team",d:"Im Schnitt "+n+" % aller Ziele",f:()=>avg()>=n})),
+  {id:"all7",i:"🤝",t:"Alle dabei",d:"Alle 7 haben mindestens einmal beigetragen",f:()=>PERSONS.filter(p=>p!=="Gruppe").every(p=>Object.values(S.en).some(e=>e.person===p))},
+  {id:"e50",i:"📈",t:"50 Einträge",d:"Gemeinsam 50 Einträge",f:()=>Object.keys(S.en).length>=50},
+  {id:"p100",i:"👑",t:"Alles geschafft",d:"Alle Challenges abgeschlossen",f:()=>{ const i=Object.keys(S.ch); return i.length>0&&i.every(id=>stats(id).win); }}
+];
+function checkAch(){
+  if(!S.achReady||!S.enOk||!S.ok||!db) return;
+  [...ACH.filter(a=>a.f()).map(a=>a.id),...Object.keys(S.ch).filter(id=>stats(id).win).map(id=>"win_"+id)].forEach(id=>{
+    if(S.ach[id]||S.pend[id]) return; S.pend[id]=1;
+    db.ref("wc/achievements/"+id).transaction(c=>c===null?{ts:Date.now()}:undefined).catch(()=>{}).then(()=>{ delete S.pend[id]; });
+  });
+}
+function popup(k){
+  const w=k.startsWith("win_"), a=ACH.find(x=>x.id===k);
+  const t=w?"WIN! "+((S.ch[k.slice(4)]||{}).name||""):a?a.i+" "+a.t:null; if(!t) return;
+  const d=document.createElement("div"); d.className="pop";
+  d.innerHTML=`<div class="popc"><div style="font-size:12px;letter-spacing:1px;color:#8a6512">${w?"TEAM-ERFOLG":"ACHIEVEMENT"}</div><div style="font-size:20px;font-weight:800;margin-top:6px">${esc(t)}</div></div>`;
+  d.onclick=()=>d.remove(); document.body.appendChild(d); if(w) confetti(); setTimeout(()=>d.remove(),3500);
+}
+function confetti(){
+  const c=document.createElement("div"); c.className="cf";
+  for(let i=0;i<28;i++){ const p=document.createElement("i"); p.style.cssText=`left:${Math.random()*100}%;background:${["#2f5d50","#d4a24e","#9cbfb5","#e7c989"][i%4]};animation-delay:${Math.random()*.4}s`; c.appendChild(p); }
+  document.body.appendChild(c); setTimeout(()=>c.remove(),3000);
+}
+function team(){
+  const en=Object.values(S.en);
+  const ach=ACH.map(a=>`<div class="row k" style="margin-top:8px;opacity:${S.ach[a.id]?1:.45}"><span>${a.i} <b>${a.t}</b><br><small>${a.d}</small></span><span>${S.ach[a.id]?"✓":"🔒"}</span></div>`).join("");
+  const pr=PERSONS.filter(p=>p!=="Gruppe").map(p=>{
+    const mine=en.filter(e=>e.person===p);
+    const by=Object.keys(S.ch).map(id=>{ const t=mine.filter(e=>e.challengeId===id).reduce((s,e)=>s+e.amount,0); return t?`<div class="row" style="margin-top:4px"><span>${esc(S.ch[id].name)}</span><b style="color:#1a1d29">${fmt(t)} ${esc(S.ch[id].unit)}</b></div>`:""; }).join("");
+    return `<div class="card"><h3>${p}</h3><div class="row"><span>${mine.length} Einträge</span></div>${by}</div>`;
+  }).join("");
+  $("#main").innerHTML=`<div class="card"><h3>Team-Erfolge</h3><div class="row"><span>${en.length} Einträge insgesamt</span></div>${ach}</div>${pr}`;
+}
+
+// ====== START ======
+if(!window.firebase || FIREBASE_CONFIG.apiKey.startsWith("DEIN")){
+  $("#main").innerHTML='<div class="card"><h3>Firebase fehlt</h3><p style="font-size:14px;margin-top:6px">Trag oben in der Datei deine Firebase-Daten ein (FIREBASE_CONFIG).</p></div>';
+} else {
+  firebase.initializeApp(FIREBASE_CONFIG);
+  db=firebase.database();
+  db.ref("wc/challenges").transaction(cur=>cur===null?DEF:undefined).catch(()=>{});
+  auth=firebase.auth(); auth.onAuthStateChanged(u=>{ S.user=u; if(u&&S.ok&&!Object.keys(S.ch).length) db.ref("wc/challenges").set(DEF).catch(()=>{}); if(S.ok&&S.tab==="chal") render(); });
+  db.ref("wc/challenges").on("value",s=>{ S.ch=s.val()||{}; S.ok=true; upd(); });
+  db.ref("wc/entries").on("value",s=>{ S.en=s.val()||{}; S.enOk=true; upd(); });
+  db.ref("wc/timer").on("value",s=>{ S.tm=s.val(); if(S.tab==="dash") upd(); });
+  db.ref(".info/connected").on("value",s=>{ S.conn=!!s.val(); $("#st").textContent=S.conn?"● online":"○ offline"; $("#st").style.color=S.conn?"#2f5d50":"#c1443c"; });
+  db.ref("wc/meta/lastSave").on("value",s=>showLs(s.val()));
+  db.ref("wc/achievements").on("value",s=>{ const n=s.val()||{}; if(S.achReady) Object.keys(n).filter(k=>!S.ach[k]).forEach(popup); S.ach=n; S.achReady=true; upd(); });
+  render();
+}
+</script>
+</body>
+</html>
